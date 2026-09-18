@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: leetcode-profile-collector
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: HOST
+        value: 0.0.0.0
+      - key: TARGET_USERS
+        value: 1000
+      - key: REQUEST_DELAY
+        value: 1.0
+      - key: MAX_RETRIES
+        value: 3
+      - key: MAX_CONCURRENCY
+        value: 3
+      - key: REQUEST_TIMEOUT
+        value: 15.0
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: ADMIN_SECRET_KEY
+        generateValue: true

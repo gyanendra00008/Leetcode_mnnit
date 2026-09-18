@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Environment secrets
+.env
+
+# SQLite Database
+*.db
+*.sqlite3
+
+# IDE / Editor
+.vscode/
+.idea/
+
+# Local prompt logs
+user_prompt_full.txt

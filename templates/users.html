@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeetCode Profile Collector & Intelligence Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+    <!-- Navigation Header -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <i class="fa-solid fa-code text-white text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+                        LeetCode Profile Collector
+                        <span id="badge-running" class="hidden text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                            <span id="action-label">Active</span>
+                        </span>
+                        <span id="badge-idle" class="text-xs px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-400 border border-slate-700">
+                            Idle
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Persistent CSV Cache & MNNIT Graph Intelligence</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center space-x-3">
+                <button id="btn-start" onclick="startCrawler()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-medium transition shadow-md hover:shadow-emerald-600/20 flex items-center gap-1.5">
+                    <i class="fa-solid fa-play text-xs"></i> Start Discovery
+                </button>
+                <button id="btn-stop" onclick="stopCrawler()" disabled class="px-3.5 py-2 bg-rose-600/50 hover:bg-rose-600 text-white/70 hover:text-white rounded-lg text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5">
+                    <i class="fa-solid fa-stop text-xs"></i> Stop
+                </button>
+                <button id="btn-update-all" onclick="updateAllUsers()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-sm font-medium border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i> Update All Stats
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <!-- Live Metrics Banner -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-slate-400">Target</span>
+                <span id="metric-target" class="text-xl font-bold text-white mt-1">--</span>
+                <span class="text-[10px] text-slate-500">Configured goal</span>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-sky-400">Discovered</span>
+                <span id="metric-discovered" class="text-xl font-bold text-sky-400 mt-1">0</span>
+                <span class="text-[10px] text-slate-500">In social graph</span>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-blue-400">Cached</span>
+                <span id="metric-cached" class="text-xl font-bold text-blue-400 mt-1">0</span>
+                <span class="text-[10px] text-slate-500">From CSV cache</span>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-teal-400">New</span>
+                <span id="metric-new" class="text-xl font-bold text-teal-400 mt-1">0</span>
+                <span class="text-[10px] text-slate-500">New this session</span>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-emerald-400">Completed</span>
+                <span id="metric-successful" class="text-xl font-bold text-emerald-400 mt-1">0</span>
+                <span class="text-[10px] text-slate-500">Stats collected</span>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-rose-400">Failed</span>
+                <span id="metric-failed" class="text-xl font-bold text-rose-400 mt-1">0</span>
+                <span class="text-[10px] text-slate-500">Private or error</span>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-semibold uppercase text-amber-400">Pending</span>
+                <span id="metric-pending" class="text-xl font-bold text-amber-400 mt-1">0</span>
+                <span class="text-[10px] text-slate-500">Awaiting fetch</span>
+            </div>
+
+            <div class="bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-xl p-3.5 flex flex-col justify-between">
+                <span class="text-[11px] font-bold uppercase text-amber-400 flex items-center gap-1">
+                    <i class="fa-solid fa-graduation-cap"></i> MNNIT
+                </span>
+                <span id="metric-mnnit" class="text-xl font-extrabold text-amber-400 mt-1">0</span>
+                <span class="text-[10px] text-amber-400/70">Verified evidence</span>
+            </div>
+        </div>
+
+        <!-- Filter, Search and Controls Bar -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center shadow-sm">
+            <!-- Search -->
+            <div class="relative flex-1 max-w-md">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input
+                    type="text"
+                    id="search-input"
+                    placeholder="Search by actual name or username..."
+                    oninput="handleSearch(event)"
+                    class="w-full bg-slate-950 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition"
+                >
+            </div>
+
+            <!-- Filters & Sort Options -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- MNNIT Filter Checkbox -->
+                <label class="cursor-pointer select-none flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 hover:border-amber-500/50 transition text-sm">
+                    <input type="checkbox" id="filter-mnnit" onchange="applyFilters()" class="w-4 h-4 rounded text-amber-500 focus:ring-0 focus:ring-offset-0 bg-slate-800 border-slate-600">
+                    <span class="text-slate-300 font-medium flex items-center gap-1.5">
+                        <i class="fa-solid fa-building-columns text-amber-400 text-xs"></i> MNNIT Only
+                    </span>
+                </label>
+
+                <!-- Sort Field -->
+                <div class="flex items-center gap-2 bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5">
+                    <span class="text-xs text-slate-400 font-medium">Sort:</span>
+                    <select id="sort-field" onchange="applyFilters()" class="bg-transparent text-sm text-slate-200 focus:outline-none cursor-pointer">
+                        <option value="rating" selected class="bg-slate-900">Rating</option>
+                        <option value="total_questions" class="bg-slate-900">Total Solved</option>
+                        <option value="easy_questions" class="bg-slate-900">Easy Solved</option>
+                        <option value="medium_questions" class="bg-slate-900">Medium Solved</option>
+                        <option value="hard_questions" class="bg-slate-900">Hard Solved</option>
+                        <option value="name" class="bg-slate-900">Actual Name</option>
+                        <option value="username" class="bg-slate-900">Username</option>
+                    </select>
+                </div>
+
+                <!-- Sort Order -->
+                <button id="sort-order-btn" onclick="toggleSortOrder()" class="px-3 py-2 bg-slate-950 border border-slate-700 hover:border-slate-600 rounded-lg text-sm text-slate-300 transition flex items-center gap-1.5" title="Toggle Ascending/Descending">
+                    <span id="sort-order-text">DESC</span>
+                    <i id="sort-order-icon" class="fa-solid fa-arrow-down-wide-short text-xs"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Users Table Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-800 bg-slate-950/70 text-[11px] uppercase tracking-wider text-slate-400 font-semibold select-none">
+                            <th class="py-3.5 px-4 w-14 text-center">Rank</th>
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition" onclick="sortByColumn('name')" title="Sort by Actual Name">
+                                Actual Name <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 cursor-pointer hover:text-amber-400 transition" onclick="sortByColumn('username')" title="Sort by Username">
+                                Username <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 text-center cursor-pointer hover:text-amber-400 transition" onclick="sortByColumn('rating')" title="Sort by Rating">
+                                Rating <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 text-center cursor-pointer hover:text-amber-400 transition" onclick="sortByColumn('total_questions')" title="Sort by Total Solved">
+                                Total Questions <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 text-center text-emerald-400 cursor-pointer hover:text-emerald-300 transition" onclick="sortByColumn('easy_questions')" title="Sort by Easy">
+                                Easy <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 text-center text-amber-400 cursor-pointer hover:text-amber-300 transition" onclick="sortByColumn('medium_questions')" title="Sort by Medium">
+                                Medium <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 text-center text-rose-400 cursor-pointer hover:text-rose-300 transition" onclick="sortByColumn('hard_questions')" title="Sort by Hard">
+                                Hard <i class="fa-solid fa-sort text-[10px] ml-1 opacity-40"></i>
+                            </th>
+                            <th class="py-3.5 px-4 text-center">College Relevance</th>
+                            <th class="py-3.5 px-4">Discovery Source</th>
+                            <th class="py-3.5 px-4 text-center">Status</th>
+                            <th class="py-3.5 px-4 text-right">Actions / Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody" class="divide-y divide-slate-800/60 text-sm">
+                        <tr>
+                            <td colspan="12" class="py-12 text-center text-slate-500">
+                                <i class="fa-solid fa-circle-notch fa-spin text-2xl text-amber-500 mb-2"></i>
+                                <p>Loading all cached users...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Continuous Single Page Status Bar (No Pagination) -->
+            <div class="border-t border-slate-800 bg-slate-950/60 px-4 py-3 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span>Displaying <span id="display-count" class="text-emerald-400 font-bold">0</span> of <span id="total-count" class="text-slate-200 font-semibold">0</span> users</span>
+                    <span class="text-slate-600">&bull;</span>
+                    <span class="text-slate-400">Continuous Single Page</span>
+                </div>
+                <div class="text-slate-500 flex items-center gap-3">
+                    <span id="sort-summary-badge" class="px-2.5 py-1 rounded bg-slate-800/70 border border-slate-700/60 text-slate-300 font-mono text-[11px]">
+                        Sorted by: <span id="sort-summary" class="text-amber-400 font-semibold">Rating (DESC)</span>
+                    </span>
+                    <span class="flex items-center gap-1 text-[11px]">
+                        <i class="fa-solid fa-arrows-up-down text-[10px]"></i> Continuous Scroll
+                    </span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Client-Side JavaScript Logic -->
+    <script>
+        // State: Loaded once into frontend memory
+        let allUsers = [];            // Raw dataset fetched once
+        let currentSort = "rating";   // Active sort field
+        let currentOrder = "desc";    // Active sort order: "desc" | "asc"
+        let isMnnitOnly = false;      // Filter: MNNIT only
+        let searchQuery = "";         // Search term
+        let pollTimer = null;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchStatus();
+            fetchAllUsers();
+            startPolling();
+        });
+
+        function startPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(() => {
+                fetchStatus();
+            }, 3000);
+        }
+
+        // Fetch metrics status (does NOT re-fetch users unless crawler is active)
+        async function fetchStatus() {
+            try {
+                const res = await fetch("/collector/status");
+                if (!res.ok) return;
+                const data = await res.json();
+
+                document.getElementById("metric-target").innerText = (data.target || 0).toLocaleString();
+                document.getElementById("metric-discovered").innerText = (data.discovered || 0).toLocaleString();
+                document.getElementById("metric-cached").innerText = (data.cached || 0).toLocaleString();
+                document.getElementById("metric-new").innerText = (data.new_users || 0).toLocaleString();
+                document.getElementById("metric-successful").innerText = (data.stats_completed || data.successful || 0).toLocaleString();
+                document.getElementById("metric-failed").innerText = (data.failed || 0).toLocaleString();
+                document.getElementById("metric-pending").innerText = (data.pending || 0).toLocaleString();
+                document.getElementById("metric-mnnit").innerText = (data.mnnit_count || 0).toLocaleString();
+
+                const badgeRunning = document.getElementById("badge-running");
+                const badgeIdle = document.getElementById("badge-idle");
+                const actionLabel = document.getElementById("action-label");
+                const btnStart = document.getElementById("btn-start");
+                const btnStop = document.getElementById("btn-stop");
+
+                if (data.is_running) {
+                    badgeRunning.classList.remove("hidden");
+                    badgeIdle.classList.add("hidden");
+                    actionLabel.innerText = data.current_action.toUpperCase();
+                    btnStart.disabled = true;
+                    btnStart.classList.add("opacity-50", "cursor-not-allowed");
+                    btnStop.disabled = false;
+                    btnStop.classList.remove("opacity-40", "cursor-not-allowed");
+
+                    // Only refresh user data if crawler is actively adding/updating
+                    fetchAllUsers(false);
+                } else {
+                    badgeRunning.classList.add("hidden");
+                    badgeIdle.classList.remove("hidden");
+                    btnStart.disabled = false;
+                    btnStart.classList.remove("opacity-50", "cursor-not-allowed");
+                    btnStop.disabled = true;
+                    btnStop.classList.add("opacity-40", "cursor-not-allowed");
+                }
+            } catch (err) {
+                console.error("Error fetching status:", err);
+            }
+        }
+
+        // Load ALL users into frontend memory ONCE
+        async function fetchAllUsers(showLoading = true) {
+            const tbody = document.getElementById("users-tbody");
+            if (showLoading && allUsers.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="12" class="py-12 text-center text-slate-500"><i class="fa-solid fa-circle-notch fa-spin text-2xl text-amber-500 mb-2"></i><p>Loading all cached users into memory...</p></td></tr>`;
+            }
+
+            try {
+                // Fetch all users at once (default limit: 5000 covers entire dataset)
+                const res = await fetch("/users?limit=5000");
+                if (!res.ok) throw new Error("Failed to fetch users");
+                const data = await res.json();
+                allUsers = data.users || [];
+
+                // Render in-memory
+                renderFilteredUsers();
+            } catch (err) {
+                console.error("Error fetching users:", err);
+            }
+        }
+
+        // Fast In-Memory Search, Sort, and Filter (ZERO network requests)
+        function renderFilteredUsers() {
+            if (!allUsers) return;
+
+            // 1. FILTERING
+            let filtered = allUsers;
+
+            // MNNIT filter
+            if (isMnnitOnly) {
+                filtered = filtered.filter(u => u.college_relevance === "MNNIT");
+            }
+
+            // Search filter: case-insensitive match on Actual Name OR Username
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(u => {
+                    const uname = (u.username || "").toLowerCase();
+                    const aname = (u.actual_name || "").toLowerCase();
+                    return uname.includes(q) || aname.includes(q);
+                });
+            }
+
+            // 2. SORTING
+            filtered = [...filtered].sort((a, b) => {
+                let res = 0;
+                if (currentSort === "rating") {
+                    const rA = a.rating;
+                    const rB = b.rating;
+                    if (rA === null && rB === null) return 0;
+                    if (rA === null) return 1;  // nulls always at bottom
+                    if (rB === null) return -1;
+                    res = (rA > rB) ? 1 : (rA < rB ? -1 : 0);
+                } else if (currentSort === "total_questions" || currentSort === "easy_questions" || currentSort === "medium_questions" || currentSort === "hard_questions") {
+                    const nA = a[currentSort] || 0;
+                    const nB = b[currentSort] || 0;
+                    res = nA - nB;
+                } else if (currentSort === "name") {
+                    const nA = (a.actual_name && a.actual_name !== "N/A") ? a.actual_name.toLowerCase() : "\uffff";
+                    const nB = (b.actual_name && b.actual_name !== "N/A") ? b.actual_name.toLowerCase() : "\uffff";
+                    res = nA.localeCompare(nB);
+                } else if (currentSort === "username") {
+                    const uA = (a.username || "").toLowerCase();
+                    const uB = (b.username || "").toLowerCase();
+                    res = uA.localeCompare(uB);
+                } else {
+                    res = 0;
+                }
+                return currentOrder === "desc" ? -res : res;
+            });
+
+            // 3. RENDER DOM ROWS
+            renderTableRows(filtered);
+
+            // 4. UPDATE STATUS
+            document.getElementById("display-count").innerText = filtered.length.toLocaleString();
+            document.getElementById("total-count").innerText = allUsers.length.toLocaleString();
+            document.getElementById("sort-summary").innerText = `${getSortLabel(currentSort)} (${currentOrder.toUpperCase()})`;
+        }
+
+        // Render rows via single innerHTML write for 60fps performance
+        function renderTableRows(users) {
+            const tbody = document.getElementById("users-tbody");
+
+            if (!users || users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="12" class="py-12 text-center text-slate-500">
+                            <i class="fa-solid fa-user-slash text-2xl mb-2 text-slate-600"></i>
+                            <p>No users found matching current filters.</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            const rowsHtml = users.map((user, idx) => {
+                const rank = idx + 1;
+                
+                // Actual name formatting
+                const displayName = (user.actual_name && user.actual_name !== "N/A") 
+                    ? `<span class="font-semibold text-slate-100">${escapeHtml(user.actual_name)}</span>`
+                    : `<span class="text-xs text-slate-500 italic">N/A</span>`;
+
+                // Rating formatting
+                let ratingBadge = "";
+                if (user.stats_status === "pending") {
+                    ratingBadge = `<span class="text-xs text-amber-400/80 italic"><i class="fa-solid fa-hourglass-half text-[10px]"></i> Pending</span>`;
+                } else if (user.rating !== null && user.rating !== undefined) {
+                    ratingBadge = `<span class="px-2.5 py-1 rounded-md text-xs font-bold ${getRatingColor(user.rating)}" title="LeetCode Contest Rating: ${user.rating}">${Math.round(user.rating)}</span>`;
+                } else {
+                    ratingBadge = `<span class="text-xs text-slate-500 italic" title="User has not participated in rated contests">N/A</span>`;
+                }
+
+                // College Relevance
+                const mnnitBadge = user.college_relevance === "MNNIT"
+                    ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"><i class="fa-solid fa-circle-check text-[10px]"></i> MNNIT</span>`
+                    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-slate-400 bg-slate-800/60 border border-slate-700/50">Discovered</span>`;
+
+                // Source
+                let sourceText = "";
+                if (user.discovered_via === "seed") {
+                    sourceText = `<span class="px-2 py-0.5 rounded bg-sky-950 text-sky-400 border border-sky-800/40 text-[11px] font-medium">Seed</span>`;
+                } else {
+                    sourceText = `
+                        <div class="text-[11px] text-slate-300 flex items-center gap-1">
+                            <span class="text-slate-400 capitalize">${escapeHtml(user.discovered_via || "graph")}</span>
+                            <span class="text-slate-500">of</span>
+                            <a href="https://leetcode.com/u/${escapeHtml(user.source_user)}/" target="_blank" class="text-amber-400 hover:underline font-mono">${escapeHtml(user.source_user)}</a>
+                        </div>
+                    `;
+                }
+
+                // Status Badge
+                let statusBadge = "";
+                if (user.stats_status === "completed") {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] font-medium">Cached</span>`;
+                } else if (user.stats_status === "failed") {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-medium" title="${escapeHtml(user.error_message || 'Fetch failed')}">Failed</span>`;
+                } else {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-medium">Pending</span>`;
+                }
+
+                // Date
+                let updatedStr = "Pending";
+                if (user.updated_at) {
+                    const date = new Date(user.updated_at);
+                    updatedStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + " " + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                }
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 text-center font-mono text-xs text-slate-400 font-semibold">${rank}</td>
+                        <td class="py-3 px-4">${displayName}</td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center space-x-1.5">
+                                <a href="${escapeHtml(user.profile_url || '')}" target="_blank" class="text-slate-200 hover:text-amber-400 font-medium transition flex items-center gap-1 group">
+                                    <span class="group-hover:underline font-mono">${escapeHtml(user.username)}</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] text-slate-500 group-hover:text-amber-400"></i>
+                                </a>
+                                ${user.error_message ? `<span title="${escapeHtml(user.error_message)}" class="text-rose-400 text-xs cursor-help"><i class="fa-solid fa-circle-exclamation"></i></span>` : ''}
+                            </div>
+                        </td>
+                        <td class="py-3 px-4 text-center">${ratingBadge}</td>
+                        <td class="py-3 px-4 text-center font-semibold text-slate-200">${(user.total_questions || 0).toLocaleString()}</td>
+                        <td class="py-3 px-4 text-center font-medium text-emerald-400">${user.easy_questions || 0}</td>
+                        <td class="py-3 px-4 text-center font-medium text-amber-400">${user.medium_questions || 0}</td>
+                        <td class="py-3 px-4 text-center font-medium text-rose-400">${user.hard_questions || 0}</td>
+                        <td class="py-3 px-4 text-center">${mnnitBadge}</td>
+                        <td class="py-3 px-4">${sourceText}</td>
+                        <td class="py-3 px-4 text-center">${statusBadge}</td>
+                        <td class="py-3 px-4 text-right">
+                            <div class="flex items-center justify-end gap-2">
+                                <button onclick="updateSingleUser('${escapeHtml(user.username)}')" title="Re-fetch stats from LeetCode" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-[11px] transition flex items-center gap-1">
+                                    <i class="fa-solid fa-rotate text-[9px]"></i> Update
+                                </button>
+                                <span class="text-xs text-slate-500 font-mono">${updatedStr}</span>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+
+            tbody.innerHTML = rowsHtml;
+        }
+
+        // Instant Client-Side Search (No Network Request)
+        function handleSearch(event) {
+            searchQuery = event.target.value.trim();
+            renderFilteredUsers();
+        }
+
+        // Instant Client-Side Filter & Sort (No Network Request)
+        function applyFilters() {
+            currentSort = document.getElementById("sort-field").value;
+            isMnnitOnly = document.getElementById("filter-mnnit").checked;
+            renderFilteredUsers();
+        }
+
+        // Toggle Sort Order (No Network Request)
+        function toggleSortOrder() {
+            currentOrder = currentOrder === "desc" ? "asc" : "desc";
+            document.getElementById("sort-order-text").innerText = currentOrder.toUpperCase();
+            const icon = document.getElementById("sort-order-icon");
+            if (currentOrder === "desc") {
+                icon.className = "fa-solid fa-arrow-down-wide-short text-xs";
+            } else {
+                icon.className = "fa-solid fa-arrow-up-wide-short text-xs";
+            }
+            renderFilteredUsers();
+        }
+
+        // Sort by Clicked Column Header
+        function sortByColumn(field) {
+            if (currentSort === field) {
+                toggleSortOrder();
+            } else {
+                currentSort = field;
+                currentOrder = (field === "name" || field === "username") ? "asc" : "desc";
+                document.getElementById("sort-field").value = field;
+                document.getElementById("sort-order-text").innerText = currentOrder.toUpperCase();
+                const icon = document.getElementById("sort-order-icon");
+                icon.className = currentOrder === "desc" ? "fa-solid fa-arrow-down-wide-short text-xs" : "fa-solid fa-arrow-up-wide-short text-xs";
+                renderFilteredUsers();
+            }
+        }
+
+        function getSortLabel(field) {
+            const map = {
+                rating: "Rating",
+                total_questions: "Total Solved",
+                easy_questions: "Easy Solved",
+                medium_questions: "Medium Solved",
+                hard_questions: "Hard Solved",
+                name: "Actual Name",
+                username: "Username"
+            };
+            return map[field] || field;
+        }
+
+        function getRatingColor(rating) {
+            if (!rating) return "bg-slate-800 text-slate-400 border border-slate-700";
+            if (rating >= 2150) return "bg-red-500/20 text-red-300 border border-red-500/40"; // Guardian
+            if (rating >= 1850) return "bg-purple-500/20 text-purple-300 border border-purple-500/40"; // Knight
+            if (rating >= 1600) return "bg-blue-500/20 text-blue-300 border border-blue-500/40";
+            return "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40";
+        }
+
+        async function startCrawler() {
+            const btnStart = document.getElementById("btn-start");
+            const originalHtml = btnStart.innerHTML;
+            btnStart.disabled = true;
+            btnStart.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Starting...`;
+            try {
+                const res = await fetch("/collector/start", { method: "POST" });
+                const data = await res.json();
+                await fetchStatus();
+                await fetchAllUsers(false);
+            } catch (err) {
+                alert("Failed to start crawler: " + err.message);
+            } finally {
+                btnStart.innerHTML = originalHtml;
+            }
+        }
+
+        async function stopCrawler() {
+            const btnStop = document.getElementById("btn-stop");
+            const originalHtml = btnStop.innerHTML;
+            btnStop.disabled = true;
+            btnStop.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> Stopping...`;
+            try {
+                const res = await fetch("/collector/stop", { method: "POST" });
+                const data = await res.json();
+                await fetchStatus();
+            } catch (err) {
+                alert("Failed to stop crawler: " + err.message);
+            } finally {
+                btnStop.innerHTML = originalHtml;
+            }
+        }
+
+        async function updateAllUsers() {
+            if (!confirm("Re-fetch statistics for all users from LeetCode and update CSV cache?")) return;
+            try {
+                const res = await fetch("/collector/update-all", { method: "POST" });
+                const data = await res.json();
+                fetchStatus();
+                fetchAllUsers(false);
+            } catch (err) {
+                alert("Failed to update statistics: " + err.message);
+            }
+        }
+
+        async function updateSingleUser(username) {
+            try {
+                const res = await fetch(`/collector/update/${encodeURIComponent(username)}`, { method: "POST" });
+                const data = await res.json();
+                fetchAllUsers(false);
+                fetchStatus();
+            } catch (err) {
+                alert("Failed to update user: " + err.message);
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return "";
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
